@@ -85,6 +85,27 @@ npm run preview
 
 ---
 
+## ☁️ 一键部署到 Render (Render.com)
+
+本项目已内置 [`render.yaml`](./render.yaml) 自动化配置，可免费托管在 Render 静态站点上：
+
+### 方式 1：通过 Blueprint 自动部署（推荐）
+1. 登录 [Render Dashboard](https://dashboard.render.com/)。
+2. 点击 **Blueprints** -> **New Blueprint Instance**。
+3. 连接 GitHub 仓库 `wangczaiyb/shendanshu`，Render 将自动读取配置完成构建与发布。
+
+### 方式 2：手动创建 Static Site
+1. 在 Render Dashboard 点击右上角 **New +** -> **Static Site**。
+2. 搜索并选择 `wangczaiyb/shendanshu` 仓库。
+3. 填写以下基础配置：
+   - **Name**：`shendanshu`（或自定义名称）
+   - **Branch**：`main`
+   - **Build Command**：`npm install && npm run build`
+   - **Publish Directory**：`dist`
+4. 点击 **Create Static Site**，等待构建完成后即可通过提供的 `https://*.onrender.com` 域名访问。
+
+---
+
 ## 📄 开源许可证
 
 本项目基于 MIT 许可证开源。
