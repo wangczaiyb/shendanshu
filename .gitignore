@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production build output
+dist/
+build/
+
+# Local & temporary files
+temp_christmas_repo/
+*.local
+*.log
+.DS_Store
+Thumbs.db
+
+# Test outputs & caches
+.vitest/
+coverage/
+.cache/
