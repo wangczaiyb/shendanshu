@@ -42,6 +42,7 @@ interface MinimalOverlayProps {
   onToggleShowcase: () => void;
   onAddPhotos: (files: FileList) => void;
   onOpenPhotoModal: () => void;
+  onManagePhotos: () => void;
   onOpenLightbox?: () => void;
   isAudioPlaying: boolean;
   onToggleAudio: () => void;
@@ -72,6 +73,7 @@ export const MinimalOverlay: React.FC<MinimalOverlayProps> = ({
   onToggleShowcase,
   onAddPhotos,
   onOpenPhotoModal,
+  onManagePhotos,
   onOpenLightbox,
   isAudioPlaying,
   onToggleAudio,
@@ -242,7 +244,7 @@ export const MinimalOverlay: React.FC<MinimalOverlayProps> = ({
                 title="全屏放大查看高清大图"
               >
                 <Maximize size={15} />
-                <span>放大查看高清大图</span>
+                <span>进入流光玻璃相册</span>
               </button>
             ) : (
               <button
@@ -310,12 +312,17 @@ export const MinimalOverlay: React.FC<MinimalOverlayProps> = ({
         <div className="dock-sep" />
 
         {/* Photos modal button */}
-        <button className="dock-btn" onClick={onOpenPhotoModal} title="管理回忆照片">
+        <button className="dock-btn" onClick={onOpenPhotoModal} title="打开液态玻璃回忆相册">
           <div className="icon-with-badge">
             <ImageIcon size={16} />
             {photosCount > 0 && <span className="dock-badge">{photosCount}</span>}
           </div>
-          <span>相册</span>
+          <span>流光相册</span>
+        </button>
+
+        <button className="dock-btn" onClick={onManagePhotos} title="添加、删除和管理照片">
+          <ImageIcon size={16} />
+          <span>管理照片</span>
         </button>
 
         {/* Quality switcher */}
@@ -374,10 +381,10 @@ export const MinimalOverlay: React.FC<MinimalOverlayProps> = ({
               e.preventDefault();
               setShowVolumeSlider(!showVolumeSlider);
             }}
-            title="点击开关音乐，右键调音量"
+            title="Jingle Bells · 点击开关音乐，右键调音量"
           >
             {isAudioPlaying ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            <span>{isAudioPlaying ? '颂歌' : '静音'}</span>
+            <span>{isAudioPlaying ? '铃儿响叮当' : '静音'}</span>
           </button>
 
           {showVolumeSlider && (

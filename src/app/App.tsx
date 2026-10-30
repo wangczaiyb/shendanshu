@@ -3,10 +3,10 @@ import { SceneManager } from '../scene/SceneManager';
 import { GestureController } from '../features/gesture-control/GestureController';
 import { GestureEvent } from '../features/gesture-control/GestureStateMachine';
 import { photoStorage } from '../storage/PhotoStorage';
-import { PasswordGate } from '../features/password-gate/PasswordGate';
+import { PaperCardIntro } from '../components/PaperCardIntro';
 import { MinimalOverlay } from '../components/MinimalOverlay';
 import { PhotoModal } from '../components/PhotoModal';
-import { PhotoLightbox } from '../components/PhotoLightbox';
+import { LiquidGlassAlbum } from '../components/LiquidGlassAlbum';
 import { soundscape } from '../utils/audio';
 import { QualityLevel, PhotoItem, GestureType, SceneStateMode, FocusedObjectInfo } from '../types';
 import './App.css';
@@ -22,6 +22,9 @@ export const App: React.FC = () => {
 
   // App States
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [isIntroVisible, setIsIntroVisible] = useState(true);
+  const [isSceneReady, setIsSceneReady] = useState(false);
+  const interactionEnabledRef = useRef(false);
   const [sceneMode, setSceneMode] = useState<SceneStateMode>('TREE_IDLE');
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [focusedObject, setFocusedObject] = useState<FocusedObjectInfo | null>(null);
@@ -52,9 +55,17 @@ export const App: React.FC = () => {
   const [currentGesture, setCurrentGesture] = useState<GestureType>('NONE');
   const [gestureMessage, setGestureMessage] = useState<string>('');
 
+  useEffect(() => {
+    interactionEnabledRef.current = isUnlocked && !isIntroVisible && !isLightboxOpen && !isPhotoModalOpen;
+    if (!isSceneReady) return;
+    if (isUnlocked && !isLightboxOpen && !isPhotoModalOpen) sceneManagerRef.current?.start();
+    else sceneManagerRef.current?.stop();
+  }, [isUnlocked, isIntroVisible, isLightboxOpen, isPhotoModalOpen, isSceneReady]);
+
   // 1. Initialize Scene & Load Photos from IndexedDB
   useEffect(() => {
     if (!canvasRef.current) return;
+    let cancelled = false;
 
     const sm = new SceneManager(canvasRef.current);
     sceneManagerRef.current = sm;
@@ -72,11 +83,15 @@ export const App: React.FC = () => {
     };
 
     photoStorage.getAllPhotos().then((items) => {
+      if (cancelled) return;
       setPhotos(items);
       sm.init(quality, items);
+      sm.stop();
+      setIsSceneReady(true);
     });
 
     return () => {
+      cancelled = true;
       sm.dispose();
       sceneManagerRef.current = null;
     };
@@ -115,7 +130,7 @@ export const App: React.FC = () => {
   const handleGestureEvent = useCallback(
     (event: GestureEvent) => {
       const sm = sceneManagerRef.current;
-      if (!sm) return;
+      if (!sm || !interactionEnabledRef.current) return;
 
       switch (event.type) {
         case 'OPEN_PALM':
@@ -163,6 +178,8 @@ export const App: React.FC = () => {
     setIsUnlocked(true);
     soundscape.startOnFirstInteraction();
     setIsAudioPlaying(soundscape.getIsPlaying());
+    sceneManagerRef.current?.start();
+    sceneManagerRef.current?.triggerAssemble();
   };
 
   // Quality switch
@@ -250,7 +267,8 @@ export const App: React.FC = () => {
   // Keyboard navigation
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (!isUnlocked) return;
+      if (!isUnlocked || isIntroVisible || isLightboxOpen || isPhotoModalOpen) return;
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
       const sm = sceneManagerRef.current;
       if (!sm) return;
 
@@ -275,7 +293,7 @@ export const App: React.FC = () => {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isUnlocked, sceneMode]);
+  }, [isUnlocked, isIntroVisible, isLightboxOpen, isPhotoModalOpen, sceneMode]);
 
   return (
     <div className="app-viewport">
@@ -290,11 +308,10 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* Entry Password Gate */}
-      {!isUnlocked && <PasswordGate onUnlock={handleUnlock} />}
+      {isIntroVisible && <PaperCardIntro ready={isSceneReady} onReveal={handleUnlock} onComplete={() => setIsIntroVisible(false)} />}
 
       {/* Cinematic Interactive Overlay */}
-      {isUnlocked && (
+      {isUnlocked && !isIntroVisible && (
         <MinimalOverlay
           mode={sceneMode}
           fps={fps}
@@ -311,7 +328,8 @@ export const App: React.FC = () => {
           onTriggerGather={() => sceneManagerRef.current?.triggerGather()}
           onToggleShowcase={() => sceneManagerRef.current?.toggleShowcase()}
           onAddPhotos={handleAddPhotosFromFiles}
-          onOpenPhotoModal={() => setIsPhotoModalOpen(true)}
+          onOpenPhotoModal={() => handleOpenLightbox(0)}
+          onManagePhotos={() => setIsPhotoModalOpen(true)}
           onOpenLightbox={() => handleOpenLightbox()}
           isAudioPlaying={isAudioPlaying}
           onToggleAudio={handleToggleAudio}
@@ -350,14 +368,21 @@ export const App: React.FC = () => {
         }}
         onDeletePhoto={handleDeletePhoto}
         onResetPresets={handleResetPresets}
-        onSelectPhoto={(idx) => sceneManagerRef.current?.focusPhoto(idx)}
+        onSelectPhoto={(idx) => {
+          sceneManagerRef.current?.focusPhoto(idx);
+          handleOpenLightbox(idx);
+        }}
       />
 
       {/* High-Resolution Photo Zoom Lightbox */}
-      <PhotoLightbox
+      <LiquidGlassAlbum
         isOpen={isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}
         photos={photos}
+        onManagePhotos={() => {
+          setIsLightboxOpen(false);
+          setIsPhotoModalOpen(true);
+        }}
         currentIndex={lightboxIndex}
         onIndexChange={(idx) => {
           setLightboxIndex(idx);

@@ -6,7 +6,12 @@ interface PasswordGateProps {
   onUnlock: () => void;
 }
 
-export const DEFAULT_PASSWORD = '2025';
+export const DEFAULT_PASSWORD = 'HKX2026';
+
+export const isPasswordValid = (input: string, target: string = DEFAULT_PASSWORD): boolean => {
+  const clean = input.trim();
+  return clean.length > 0 && clean === target;
+};
 
 export const PasswordGate: React.FC<PasswordGateProps> = ({ onUnlock }) => {
   const [password, setPassword] = useState('');
@@ -16,7 +21,6 @@ export const PasswordGate: React.FC<PasswordGateProps> = ({ onUnlock }) => {
 
   const targetPassword =
     (import.meta as unknown as { env: Record<string, string> }).env?.VITE_APP_PASSWORD ||
-    localStorage.getItem('clg_password') ||
     DEFAULT_PASSWORD;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,7 +31,7 @@ export const PasswordGate: React.FC<PasswordGateProps> = ({ onUnlock }) => {
       return;
     }
 
-    if (password.trim() === targetPassword || password.trim().toUpperCase() === 'GARDEN') {
+    if (isPasswordValid(password, targetPassword)) {
       setIsError(false);
       setIsExiting(true);
       setTimeout(() => {
@@ -53,7 +57,7 @@ export const PasswordGate: React.FC<PasswordGateProps> = ({ onUnlock }) => {
         <div className="gate-header">
           <div className="badge-pill">
             <Sparkles size={14} className="gold-icon" />
-            <span>CHRISTMAS LIGHT GARDEN</span>
+            <span>CHRISTMAS LIGHT GARDEN · 2026</span>
           </div>
           <h1 className="gate-title">光粒子圣诞树</h1>
           <p className="gate-subtitle">
@@ -66,7 +70,10 @@ export const PasswordGate: React.FC<PasswordGateProps> = ({ onUnlock }) => {
             <Key size={18} className="input-icon" />
             <input
               type="password"
-              placeholder="输入密码进入奇境 (默认: 2025)"
+              placeholder="输入专属密码，开启圣诞奇境"
+              aria-label="体验密码"
+              autoCapitalize="none"
+              autoCorrect="off"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -91,11 +98,11 @@ export const PasswordGate: React.FC<PasswordGateProps> = ({ onUnlock }) => {
 
         <div className="gate-footer">
           <div className="hint-text">
-            <span>体验提示：默认密码 <strong>2025</strong> 或 <strong>GARDEN</strong></span>
+            <span>2026 圣诞季 · 把回忆挂上树，把心意送给你</span>
           </div>
           <div className="security-notice">
             <Lock size={12} />
-            <span>注：本入口为沉浸式演示校验。生产私密环境请配置服务端授权。</span>
+            <span>用专属口令，开启属于你的圣诞时刻</span>
           </div>
         </div>
       </div>

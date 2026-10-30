@@ -125,7 +125,7 @@ export const PhotoModal: React.FC<PhotoModalProps> = ({
                 <div className="photo-thumb-wrapper">
                   <img src={photo.url} alt={photo.name} className="photo-thumb" />
                   <div className="thumb-hover-overlay">
-                    <span>点击在 3D 树中聚焦</span>
+                    <span>在流光玻璃相册中查看</span>
                   </div>
                 </div>
 

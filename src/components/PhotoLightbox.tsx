@@ -6,7 +6,6 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Maximize2,
   Sparkles,
 } from 'lucide-react';
 import { PhotoItem } from '../types';
@@ -32,18 +31,38 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const initialPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef({ distance: 0, scale: 1 });
+  const moved = useRef(false);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   // Reset zoom & pan when photo changes or modal opens
   useEffect(() => {
     setScale(1.0);
     setPosition({ x: 0, y: 0 });
+    setIsDragging(false);
+    pointers.current.clear();
   }, [currentIndex, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const stage = stageRef.current;
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault();
+      setScale(value => Math.max(.7, Math.min(3.5, value + (event.deltaY < 0 ? .15 : -.15))));
+    };
+    stage?.addEventListener('wheel', wheel, { passive: false });
+    return () => stage?.removeEventListener('wheel', wheel);
+  }, [isOpen]);
+
+  useEffect(() => { if (scale <= 1) setPosition({ x: 0, y: 0 }); }, [scale]);
 
   // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (['Escape', 'ArrowRight', 'ArrowLeft', '=', '+', '-', '0'].includes(e.key)) e.preventDefault();
       if (e.key === 'Escape') {
         onClose();
       } else if (e.key === 'ArrowRight') {
@@ -94,18 +113,19 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
     setPosition({ x: 0, y: 0 });
   };
 
-  // Wheel zoom
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    if (e.deltaY < 0) {
-      zoomIn();
-    } else {
-      zoomOut();
-    }
-  };
-
   // Drag to pan when zoomed in
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    moved.current = false;
+    if (pointers.current.size === 2) {
+      const [a, b] = Array.from(pointers.current.values());
+      pinch.current = { distance: Math.hypot(a.x - b.x, a.y - b.y), scale };
+      setIsDragging(false);
+      moved.current = true;
+      return;
+    }
     if (scale <= 1) return;
     setIsDragging(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
@@ -113,21 +133,35 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = Array.from(pointers.current.values());
+      const ratio = Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch.current.distance);
+      setScale(Math.max(.7, Math.min(3.5, pinch.current.scale * ratio)));
+      moved.current = true;
+      return;
+    }
     if (!isDragging) return;
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
+    if (Math.hypot(dx, dy) > 4) moved.current = true;
     setPosition({
       x: initialPosRef.current.x + dx,
       y: initialPosRef.current.y + dy,
     });
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
+    const wasPinching = pointers.current.size > 1;
+    pointers.current.delete(e.pointerId);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+    if (!moved.current && !wasPinching && e.type !== 'pointercancel' && scale === 1) zoomIn();
     setIsDragging(false);
   };
 
   return (
-    <div className="photo-lightbox-overlay" onClick={onClose}>
+    <div className="photo-lightbox-overlay" role="dialog" aria-modal="true" aria-label="照片放大查看" onClick={onClose}>
       {/* Top Header Bar */}
       <div className="lightbox-header" onClick={(e) => e.stopPropagation()}>
         <div className="lightbox-meta">
@@ -153,7 +187,7 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             <RotateCcw size={16} />
           </button>
           <div className="tool-sep" />
-          <button className="tool-btn close-btn" onClick={onClose} title="关闭大图 (ESC)">
+          <button className="tool-btn close-btn" onClick={onClose} title="返回玻璃画廊 (ESC)" aria-label="返回玻璃画廊" autoFocus>
             <X size={20} />
           </button>
         </div>
@@ -162,13 +196,14 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
       {/* Main Image Stage */}
       <div
         className="lightbox-stage"
+        ref={stageRef}
         onClick={(e) => e.stopPropagation()}
-        onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
+        <div className="lightbox-glass-frame">
         <img
           src={currentPhoto.url}
           alt={currentPhoto.title || currentPhoto.name}
@@ -177,13 +212,9 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in',
           }}
-          onClick={(e) => {
-            if (scale === 1) {
-              zoomIn();
-            }
-          }}
           draggable={false}
         />
+        </div>
       </div>
 
       {/* Prev / Next Navigation Arrows */}
@@ -217,13 +248,16 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
 
         <div className="lightbox-strip">
           {photos.map((p, idx) => (
-            <div
+            <button
+              type="button"
               key={p.id}
               className={`strip-thumb ${idx === currentIndex ? 'active' : ''}`}
               onClick={() => onIndexChange(idx)}
+              aria-label={`查看${p.title || p.name}`}
+              aria-pressed={idx === currentIndex}
             >
               <img src={p.url} alt={p.name} />
-            </div>
+            </button>
           ))}
         </div>
       </div>

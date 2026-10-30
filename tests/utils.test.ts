@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { clamp, lerp, smoothstep, MovingAverage } from '../src/utils/math';
 import { PhotoStorage } from '../src/storage/PhotoStorage';
+import { existsSync } from 'node:fs';
 
 describe('Utility and Storage Tests', () => {
   it('clamp behaves properly', () => {
@@ -32,11 +33,16 @@ describe('Utility and Storage Tests', () => {
     const storage = new PhotoStorage();
     const presets = storage.generateDefaultPresets();
 
-    expect(presets.length).toBeGreaterThanOrEqual(4);
+    expect(presets.map(preset => preset.url)).toEqual([
+      '/memories/memory-01-letter.jpg',
+      '/memories/memory-02-note.jpg',
+      '/memories/memory-03-apple.png',
+      '/memories/memory-04-snow.jpg',
+    ]);
     presets.forEach((preset) => {
       expect(preset.id).toBeDefined();
       expect(preset.name).toBeDefined();
-      expect(preset.url).toContain('data:image/svg+xml');
+      expect(existsSync(new URL(`../public${preset.url}`, import.meta.url))).toBe(true);
       expect(preset.aspectRatio).toBeGreaterThan(0);
     });
   });

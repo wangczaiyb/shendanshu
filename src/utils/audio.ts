@@ -1,7 +1,7 @@
 /**
  * Web Audio API synthesized Christmas Music Box & Soundscape Engine
  * Features:
- * - Polyphonic Celesta / Music Box melody player ("Silent Night" & "We Wish You a Merry Christmas")
+ * - Polyphonic Celesta / Music Box melody player ("Jingle Bells")
  * - Warm ambient sub-harmonic pad for deep spatial immersion
  * - Smooth fade-in, volume control, mute/unmute
  * - Tab visibility detection (auto pause/resume when switched)
@@ -19,31 +19,24 @@ const C4 = 261.63, D4 = 293.66, E4 = 329.63, F4 = 349.23, Fs4 = 369.99, G4 = 392
 const C5 = 523.25, D5 = 587.33, E5 = 659.25, F5 = 698.46, Fs5 = 739.99, G5 = 783.99, A5 = 880.0, B5 = 987.77;
 const C6 = 1046.5, D6 = 1174.66, E6 = 1318.51, G6 = 1567.98;
 
-// "Silent Night" celesta melody (3/4 time)
-const SILENT_NIGHT: Note[] = [
-  { pitch: G4, duration: 1.5 }, { pitch: A4, duration: 0.5 }, { pitch: G4, duration: 1.0 },
-  { pitch: E4, duration: 3.0 },
-  { pitch: G4, duration: 1.5 }, { pitch: A4, duration: 0.5 }, { pitch: G4, duration: 1.0 },
-  { pitch: E4, duration: 3.0 },
-  { pitch: D5, duration: 2.0 }, { pitch: D5, duration: 1.0 },
-  { pitch: B4, duration: 3.0 },
-  { pitch: C5, duration: 2.0 }, { pitch: C5, duration: 1.0 },
-  { pitch: G4, duration: 3.0 },
-  { pitch: A4, duration: 2.0 }, { pitch: A4, duration: 1.0 },
-  { pitch: C5, duration: 1.5 }, { pitch: B4, duration: 0.5 }, { pitch: A4, duration: 1.0 },
-  { pitch: G4, duration: 1.5 }, { pitch: A4, duration: 0.5 }, { pitch: G4, duration: 1.0 },
-  { pitch: E4, duration: 3.0 },
-  { pitch: A4, duration: 2.0 }, { pitch: A4, duration: 1.0 },
-  { pitch: C5, duration: 1.5 }, { pitch: B4, duration: 0.5 }, { pitch: A4, duration: 1.0 },
-  { pitch: G4, duration: 1.5 }, { pitch: A4, duration: 0.5 }, { pitch: G4, duration: 1.0 },
-  { pitch: E4, duration: 3.0 },
-  { pitch: D5, duration: 2.0 }, { pitch: D5, duration: 1.0 },
-  { pitch: F5, duration: 1.5 }, { pitch: D5, duration: 0.5 }, { pitch: B4, duration: 1.0 },
-  { pitch: C5, duration: 3.0 },
-  { pitch: E5, duration: 3.0 },
-  { pitch: C5, duration: 1.5 }, { pitch: G4, duration: 0.5 }, { pitch: E4, duration: 1.0 },
-  { pitch: G4, duration: 1.5 }, { pitch: F4, duration: 0.5 }, { pitch: D4, duration: 1.0 },
-  { pitch: C4, duration: 4.0 },
+// "Jingle Bells" chorus, C major, 4/4. Synthesized locally; no external audio request.
+const JINGLE_BELLS: Note[] = [
+  { pitch: E5, duration: 1 }, { pitch: E5, duration: 1 }, { pitch: E5, duration: 2 },
+  { pitch: E5, duration: 1 }, { pitch: E5, duration: 1 }, { pitch: E5, duration: 2 },
+  { pitch: E5, duration: 1 }, { pitch: G5, duration: 1 }, { pitch: C5, duration: 1.5 }, { pitch: D5, duration: .5 },
+  { pitch: E5, duration: 4 },
+  { pitch: F5, duration: 1 }, { pitch: F5, duration: 1 }, { pitch: F5, duration: 1.5 }, { pitch: F5, duration: .5 },
+  { pitch: F5, duration: 1 }, { pitch: E5, duration: 1 }, { pitch: E5, duration: 1 }, { pitch: E5, duration: .5 }, { pitch: E5, duration: .5 },
+  { pitch: E5, duration: 1 }, { pitch: D5, duration: 1 }, { pitch: D5, duration: 1 }, { pitch: E5, duration: 1 },
+  { pitch: D5, duration: 2 }, { pitch: G5, duration: 2 },
+  { pitch: E5, duration: 1 }, { pitch: E5, duration: 1 }, { pitch: E5, duration: 2 },
+  { pitch: E5, duration: 1 }, { pitch: E5, duration: 1 }, { pitch: E5, duration: 2 },
+  { pitch: E5, duration: 1 }, { pitch: G5, duration: 1 }, { pitch: C5, duration: 1.5 }, { pitch: D5, duration: .5 },
+  { pitch: E5, duration: 4 },
+  { pitch: F5, duration: 1 }, { pitch: F5, duration: 1 }, { pitch: F5, duration: 1 }, { pitch: F5, duration: 1 },
+  { pitch: F5, duration: 1 }, { pitch: E5, duration: 1 }, { pitch: E5, duration: 1 }, { pitch: E5, duration: .5 }, { pitch: E5, duration: .5 },
+  { pitch: G5, duration: 1 }, { pitch: G5, duration: 1 }, { pitch: F5, duration: 1 }, { pitch: D5, duration: 1 },
+  { pitch: C5, duration: 4 },
 ];
 
 export class Soundscape {
@@ -57,7 +50,7 @@ export class Soundscape {
   private isPlayingBgm: boolean = false;
   private sequenceTimer: number | null = null;
   private currentNoteIndex: number = 0;
-  private tempoBpm: number = 72; // gentle, cozy tempo
+  private tempoBpm: number = 108; // Light, festive music-box tempo
   private warmPadNodes: OscillatorNode[] = [];
 
   constructor() {
@@ -232,7 +225,7 @@ export class Soundscape {
   private scheduleNextNote = () => {
     if (!this.isPlayingBgm) return;
 
-    const note = SILENT_NIGHT[this.currentNoteIndex];
+    const note = JINGLE_BELLS[this.currentNoteIndex];
     const beatSeconds = 60 / this.tempoBpm;
     const noteDurationSec = note.duration * beatSeconds;
 
@@ -240,7 +233,7 @@ export class Soundscape {
       this.playCelestaNote(note.pitch, Math.max(noteDurationSec * 1.4, 1.8), 0.22);
     }
 
-    this.currentNoteIndex = (this.currentNoteIndex + 1) % SILENT_NIGHT.length;
+    this.currentNoteIndex = (this.currentNoteIndex + 1) % JINGLE_BELLS.length;
     this.sequenceTimer = window.setTimeout(this.scheduleNextNote, noteDurationSec * 1000);
   };
 
